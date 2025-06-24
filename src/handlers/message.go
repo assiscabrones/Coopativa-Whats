@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"hisoka/src/libs"
 	"os"
@@ -21,7 +22,8 @@ type IHandler struct {
 }
 
 func NewHandler(container *sqlstore.Container) *IHandler {
-	deviceStore, err := container.GetFirstDevice()
+	ctx := context.Background()
+	deviceStore, err := container.GetFirstDevice(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -50,14 +52,16 @@ func (h *IHandler) RegisterHandler(conn *whatsmeow.Client) func(evt interface{})
 			}
 
 			// log
-			fmt.Println("\x1b[94mDari :", v.Info.PushName, m.Info.Sender.User, "\x1b[39m")
-			if libs.HasCommand(m.Command) {
-				fmt.Println("\x1b[93mCommand :", m.Command, "\x1b[39m")
-			}
-			if len(m.Body) < 350 {
-				fmt.Print("\x1b[92mPesan : ", m.Body, "\x1b[39m", "\n")
-			} else {
-				fmt.Print("\x1b[92mPesan : ", m.Info.Type, "\x1b[39m", "\n")
+			if m.Body != "" {
+				fmt.Println("\x1b[94mFrom :", v.Info.PushName, m.Info.Sender.User, "\x1b[39m")
+				if libs.HasCommand(m.Command) {
+					fmt.Println("\x1b[93mCommand :", m.Command, "\x1b[39m")
+				}
+				if len(m.Body) < 350 {
+					fmt.Print("\x1b[92mMessage : ", m.Body, "\x1b[39m", "\n")
+				} else {
+					fmt.Print("\x1b[92mMessage : ", m.Info.Type, "\x1b[39m", "\n")
+				}
 			}
 
 			// Get command
@@ -74,7 +78,7 @@ func (h *IHandler) RegisterHandler(conn *whatsmeow.Client) func(evt interface{})
 
 func ExecuteCommand(c *libs.IClient, m *libs.IMessage) {
 	var prefix string
-	pattern := regexp.MustCompile(`[?!.#]`)
+	pattern := regexp.MustCompile(os.Getenv("PREFIX"))
 	for _, f := range pattern.FindAllString(m.Command, -1) {
 		prefix = f
 	}
@@ -113,22 +117,22 @@ func ExecuteCommand(c *libs.IClient, m *libs.IMessage) {
 				}
 
 				if cmd.IsQuery && m.Text == "" {
-					m.Reply("Query Di Butuhkan")
+					m.Reply("Query Required")
 					continue
 				}
 
 				if cmd.IsGroup && !m.Info.IsGroup {
-					m.Reply("Perintah hanya berfungsi di Group Chat")
+					m.Reply("Commands only work in Group Chat")
 					continue
 				}
 
 				if cmd.IsPrivate && m.Info.IsGroup {
-					m.Reply("Perintah hanya bersungsi di Private Chat")
+					m.Reply("Commands only work in Private Chat")
 					continue
 				}
 
 				if cmd.IsMedia && m.IsMedia == "" {
-					m.Reply("Balas Pesan Media, atau kirim Media dengan Command")
+					m.Reply("Reply to Media Message, or send Media with Command")
 					continue
 				}
 

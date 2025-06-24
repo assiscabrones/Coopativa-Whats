@@ -1,6 +1,7 @@
 package libs
 
 import (
+	"os"
 	"regexp"
 	"strings"
 )
@@ -17,7 +18,7 @@ func GetList() []ICommand {
 
 func HasCommand(name string) bool {
 	var prefix string
-	pattern := regexp.MustCompile(`[?!.#]`)
+	pattern := regexp.MustCompile(os.Getenv("PREFIX"))
 	for _, f := range pattern.FindAllString(name, -1) {
 		prefix = f
 	}
