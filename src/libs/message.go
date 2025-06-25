@@ -9,6 +9,7 @@ import (
 
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
+	waTypes "go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 	"google.golang.org/protobuf/proto"
 )
@@ -20,6 +21,13 @@ func SerializeMessage(mess *events.Message, conn *IClient) *IMessage {
 	var owner []string
 	var isOwner = false
 	var isMedia string
+	var sender waTypes.JID
+
+	if mess.Info.AddressingMode == "lid" {
+		sender = mess.Info.SenderAlt
+	} else {
+		sender = mess.Info.Sender
+	}
 
 	mess.Message = helpers.ParseMessage(mess)
 	body := helpers.GetTextMessage(mess)
@@ -27,7 +35,7 @@ func SerializeMessage(mess *events.Message, conn *IClient) *IMessage {
 	owner = strings.Split(os.Getenv("OWNER"), ",")
 
 	for _, v := range owner {
-		if strings.Contains(regexp.MustCompile(`\D+`).ReplaceAllString(v, ""), mess.Info.Sender.ToNonAD().User) {
+		if strings.Contains(regexp.MustCompile(`\D+`).ReplaceAllString(v, ""), sender.ToNonAD().User) {
 			isOwner = true
 		}
 	}
@@ -58,6 +66,7 @@ func SerializeMessage(mess *events.Message, conn *IClient) *IMessage {
 
 	return &IMessage{
 		Info:       mess.Info,
+		Sender:     sender,
 		IsOwner:    isOwner,
 		Body:       body,
 		Text:       text,

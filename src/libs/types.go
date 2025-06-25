@@ -28,6 +28,7 @@ type ICommand struct {
 
 type IMessage struct {
 	Info       types.MessageInfo
+	Sender     types.JID
 	IsOwner    bool
 	Body       string
 	Text       string
