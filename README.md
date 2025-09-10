@@ -37,6 +37,61 @@ hisoka.exe # for linux
 go run main.go
 ```
 
+## 🐳 Docker Deployment
+
+O Bot Nexum agora suporta deployment com Docker para facilitar a instalação e execução.
+
+### Pré-requisitos para Docker
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+### Instalação Rápida com Docker
+```bash
+# Clone o repositório
+git clone <seu-repositorio>
+cd gobot
+
+# Configure as variáveis de ambiente
+cp env.example .env
+# Edite o arquivo .env com suas configurações
+
+# Execute o script de build
+./build-docker.sh build
+./build-docker.sh run
+```
+
+### Comandos Docker Disponíveis
+```bash
+# Construir a imagem
+./build-docker.sh build
+
+# Iniciar o bot
+./build-docker.sh run
+
+# Ver logs
+./build-docker.sh logs
+
+# Parar o bot
+./build-docker.sh stop
+
+# Ver status
+./build-docker.sh status
+```
+
+### Docker Compose
+```bash
+# Iniciar com Docker Compose
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f
+
+# Parar
+docker-compose down
+```
+
+Para mais informações sobre Docker, consulte [DOCKER_README.md](DOCKER_README.md).
+
 ## Thanks To
 - [tulir](https://github.com/tulir)
-- [vnia](https://github.com/fckvania)
+- [vnia](https://github.com/fckvania)# Coopativa-Whats
