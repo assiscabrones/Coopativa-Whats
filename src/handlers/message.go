@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 	"hisoka/src/libs"
-	"os"
-	"regexp"
-	"strings"
 	"time"
 
 	"go.mau.fi/whatsmeow"
@@ -21,7 +18,13 @@ type IHandler struct {
 	Container *store.Device
 }
 
+// Timestamp de quando o bot foi inicializado
+var botStartupTime = time.Now()
+
 func NewHandler(container *sqlstore.Container) *IHandler {
+	// Define o timestamp de inicialização do bot
+	botStartupTime = time.Now()
+	
 	ctx := context.Background()
 	deviceStore, err := container.GetFirstDevice(ctx)
 	if err != nil {
@@ -51,12 +54,17 @@ func (h *IHandler) RegisterHandler(conn *whatsmeow.Client) func(evt interface{})
 				return
 			}
 
+			// Filtra mensagens antigas (enviadas antes do bot estar online)
+			messageTime := v.Info.Timestamp
+			if messageTime.Before(botStartupTime) {
+				fmt.Printf("\x1b[90m[IGNORADA] Mensagem antiga de %s (%s) - enviada em %s\x1b[39m\n", 
+					v.Info.PushName, v.Info.Sender.User, messageTime.Format("15:04:05"))
+				return
+			}
+
 			// log
 			if m.Body != "" {
 				fmt.Println("\x1b[94mFrom :", v.Info.PushName, m.Info.Sender.User, "\x1b[39m")
-				if libs.HasCommand(m.Command) {
-					fmt.Println("\x1b[93mCommand :", m.Command, "\x1b[39m")
-				}
 				if len(m.Body) < 350 {
 					fmt.Print("\x1b[92mMessage : ", m.Body, "\x1b[39m", "\n")
 				} else {
@@ -64,8 +72,8 @@ func (h *IHandler) RegisterHandler(conn *whatsmeow.Client) func(evt interface{})
 				}
 			}
 
-			// Get command
-			go ExecuteCommand(sock, m)
+			// Process stage message
+			go ProcessStageMessage(sock, m)
 			return
 		case *events.Connected, *events.PushNameSetting:
 			if len(conn.Store.PushName) == 0 {
@@ -76,82 +84,12 @@ func (h *IHandler) RegisterHandler(conn *whatsmeow.Client) func(evt interface{})
 	}
 }
 
-func ExecuteCommand(c *libs.IClient, m *libs.IMessage) {
-	var prefix string
-	pattern := regexp.MustCompile(os.Getenv("PREFIX"))
-	for _, f := range pattern.FindAllString(m.Command, -1) {
-		prefix = f
-	}
-	lists := libs.GetList()
-	for _, cmd := range lists {
-		if cmd.Before != nil {
-			cmd.Before(c, m)
-		}
-		re := regexp.MustCompile(`^` + cmd.Name + `$`)
-		if valid := len(re.FindAllString(strings.ReplaceAll(m.Command, prefix, ""), -1)) > 0; valid {
-			if cmd.Execute != nil {
-				if os.Getenv("PUBLIC") == "false" && !m.IsOwner {
-					return
-				}
+func ProcessStageMessage(c *libs.IClient, m *libs.IMessage) {
+	// Processa a mensagem usando o sistema de stages
+	libs.ProcessStageMessage(c, m)
+}
 
-				var cmdWithPref bool
-				var cmdWithoutPref bool
-				if cmd.IsPrefix && (prefix != "" && strings.HasPrefix(m.Command, prefix)) {
-					cmdWithPref = true
-				} else {
-					cmdWithPref = false
-				}
-
-				if !cmd.IsPrefix {
-					cmdWithoutPref = true
-				} else {
-					cmdWithoutPref = false
-				}
-
-				if !cmdWithPref && !cmdWithoutPref {
-					continue
-				}
-
-				if cmd.IsOwner && !m.IsOwner {
-					continue
-				}
-
-				if cmd.IsQuery && m.Text == "" {
-					m.Reply("Query Required")
-					continue
-				}
-
-				if cmd.IsGroup && !m.Info.IsGroup {
-					m.Reply("Commands only work in Group Chat")
-					continue
-				}
-
-				if cmd.IsPrivate && m.Info.IsGroup {
-					m.Reply("Commands only work in Private Chat")
-					continue
-				}
-
-				if cmd.IsMedia && m.IsMedia == "" {
-					m.Reply("Reply to Media Message, or send Media with Command")
-					continue
-				}
-
-				if cmd.IsWait {
-					m.React("⏳")
-				}
-
-				ok := cmd.Execute(c, m)
-
-				if cmd.IsWait && !ok {
-					m.React("❌")
-				}
-
-				if cmd.IsWait && ok {
-					c.WA.MarkRead([]string{m.Info.ID}, time.Now(), m.Info.Chat, m.Info.Sender)
-					m.React("")
-					continue
-				}
-			}
-		}
-	}
+// GetBotStartupTime retorna o timestamp de quando o bot foi inicializado
+func GetBotStartupTime() time.Time {
+	return botStartupTime
 }

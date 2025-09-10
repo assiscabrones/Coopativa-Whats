@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  bot-nexum:
+    build: .
+    container_name: bot-nexum
+    restart: unless-stopped
+    environment:
+      # Configurações do bot
+      - PAIRING_NUMBER=${PAIRING_NUMBER:-}
+      - OWNER=${OWNER:-}
+      - PREFIX=${PREFIX:-!}
+      - PUBLIC=${PUBLIC:-true}
+    volumes:
+      # Persistir dados do banco de dados
+      - ./data:/app/data
+      # Persistir sessão do WhatsApp
+      - ./session:/app/session
+    networks:
+      - bot-network
+    # Health check opcional
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "main"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  bot-network:
+    driver: bridge
+
+volumes:
+  bot-data:
+    driver: local
+  bot-session:
+    driver: local

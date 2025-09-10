@@ -1,5 +1,59 @@
+# Binários
+bot
+main
 *.exe
+
+# Arquivos de banco de dados
 *.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
 logs.txt
-go.sum
-.sesi
+
+# Arquivos de configuração local
+.env
+.env.local
+.env.production
+
+# Arquivos de sessão do WhatsApp
+session.db
+
+# Diretórios de dados
+data/
+session/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Diretórios de desenvolvimento
+.vscode/
+.idea/
+*.iml
+
+# Arquivos temporários
+tmp/
+temp/
+*.tmp
+
+# Arquivos de teste
+*_test.go
+test_*
+debug_*
+
+# Arquivos de build
+dist/
+build/
+
+# Arquivos de Docker
+.dockerignore
+
+# Arquivos de backup
+*.tar.gz
+*.zip
+backup-*

@@ -31,7 +31,6 @@ func SerializeMessage(mess *events.Message, conn *IClient) *IMessage {
 
 	mess.Message = helpers.ParseMessage(mess)
 	body := helpers.GetTextMessage(mess)
-	command := strings.ToLower(strings.Split(body, " ")[0])
 	owner = strings.Split(os.Getenv("OWNER"), ",")
 
 	for _, v := range owner {
@@ -44,13 +43,8 @@ func SerializeMessage(mess *events.Message, conn *IClient) *IMessage {
 		body = strings.Trim(strings.Replace(body, "@"+conn.WA.Store.ID.ToNonAD().User, "", 1), " ")
 	}
 
-	if HasCommand(command) {
-		text = strings.Join(strings.Split(body, " ")[1:], ` `)
-		args = helpers.ArrayFilter(strings.Split(text, " "), "")
-	} else {
-		text = body
-		args = helpers.ArrayFilter(strings.Split(body, " "), "")
-	}
+	text = body
+	args = helpers.ArrayFilter(strings.Split(body, " "), "")
 
 	quotedMsg := helpers.ParseQuotedMessage(mess.Message)
 
@@ -71,7 +65,7 @@ func SerializeMessage(mess *events.Message, conn *IClient) *IMessage {
 		Body:       body,
 		Text:       text,
 		Args:       args,
-		Command:    command,
+		Command:    "", // Não usado mais no sistema de stages
 		Message:    mess.Message,
 		IsMedia:    isMedia,
 		Media:      media,

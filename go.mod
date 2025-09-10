@@ -7,7 +7,6 @@ toolchain go1.24.4
 require (
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/mdp/qrterminal v1.0.1
-	github.com/robertkrimen/otto v0.5.1
 	github.com/subosito/gotenv v1.6.0
 	go.mau.fi/whatsmeow v0.0.0-20250617170509-947866bb9f75
 	google.golang.org/protobuf v1.36.6
@@ -15,7 +14,6 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -29,6 +27,5 @@ require (
 	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
-	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )

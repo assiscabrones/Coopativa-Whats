@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bot-nexum
+  labels:
+    app: bot-nexum
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bot-nexum
+  template:
+    metadata:
+      labels:
+        app: bot-nexum
+    spec:
+      containers:
+      - name: bot-nexum
+        image: bot-nexum:latest
+        imagePullPolicy: Always
+        env:
+        - name: PAIRING_NUMBER
+          valueFrom:
+            secretKeyRef:
+              name: bot-nexum-secrets
+              key: pairing-number
+              optional: true
+        - name: OWNER
+          valueFrom:
+            secretKeyRef:
+              name: bot-nexum-secrets
+              key: owner
+        - name: PREFIX
+          value: "!"
+        - name: PUBLIC
+          value: "true"
+        - name: DATA_DIR
+          value: "/app/data"
+        - name: SESSION_DIR
+          value: "/app/session"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /app/data
+        - name: session-volume
+          mountPath: /app/session
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - pgrep
+            - -f
+            - main
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          exec:
+            command:
+            - pgrep
+            - -f
+            - main
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: bot-nexum-data
+      - name: session-volume
+        persistentVolumeClaim:
+          claimName: bot-nexum-session
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bot-nexum-service
+  labels:
+    app: bot-nexum
+spec:
+  selector:
+    app: bot-nexum
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bot-nexum-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bot-nexum-session
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bot-nexum-secrets
+type: Opaque
+data:
+  # Base64 encoded values
+  # echo -n "5511999999999" | base64
+  owner: NTUxMTk5OTk5OTk5OQ==
+  # echo -n "5511888888888" | base64 (opcional)
+  pairing-number: ""

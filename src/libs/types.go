@@ -10,20 +10,24 @@ type IClient struct {
 	WA *whatsmeow.Client
 }
 
-type ICommand struct {
+// Estruturas do sistema de stages
+type Stage struct {
+	ID          string
 	Name        string
-	As          []string
 	Description string
-	Tags        string
-	IsPrefix    bool
-	IsOwner     bool
-	IsMedia     bool
-	IsQuery     bool
-	IsGroup     bool
-	IsWait      bool
-	IsPrivate   bool
-	Before      func(conn *IClient, m *IMessage)
-	Execute     func(conn *IClient, m *IMessage) bool
+	Handler     func(conn *IClient, m *IMessage, userStage *UserStage) bool
+	NextStages  []string // IDs dos stages que podem ser acessados a partir deste
+	IsOwner     bool     // Se apenas owners podem acessar
+	IsGroup     bool     // Se funciona apenas em grupos
+	IsPrivate   bool     // Se funciona apenas em privado
+}
+
+type UserStage struct {
+	UserID      string
+	CurrentStage string
+	Data        map[string]interface{} // Dados específicos do usuário no stage atual
+	CreatedAt   int64
+	UpdatedAt   int64
 }
 
 type IMessage struct {

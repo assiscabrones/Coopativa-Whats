@@ -1,0 +1,19 @@
+apiVersion: v2
+name: bot-nexum
+description: Bot Nexum - WhatsApp Bot with Stages System
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+home: https://github.com/your-username/bot-nexum
+sources:
+  - https://github.com/your-username/bot-nexum
+maintainers:
+  - name: Your Name
+    email: your.email@example.com
+keywords:
+  - whatsapp
+  - bot
+  - stages
+  - go
+annotations:
+  category: Communication

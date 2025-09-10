@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  bot-nexum:
+    build: .
+    container_name: bot-nexum-prod
+    restart: unless-stopped
+    environment:
+      # Configurações do bot
+      - PAIRING_NUMBER=${PAIRING_NUMBER}
+      - OWNER=${OWNER}
+      - PREFIX=${PREFIX:-!}
+      - PUBLIC=${PUBLIC:-true}
+      # Configurações de produção
+      - DATA_DIR=/app/data
+      - SESSION_DIR=/app/session
+    volumes:
+      # Persistir dados do banco de dados
+      - bot-data:/app/data
+      # Persistir sessão do WhatsApp
+      - bot-session:/app/session
+    networks:
+      - bot-network
+    # Health check
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "main"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Limites de recursos
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    # Logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Serviço opcional para monitoramento
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_INCLUDE_STOPPED=true
+    networks:
+      - bot-network
+    # Apenas se você quiser auto-update
+    profiles:
+      - monitoring
+
+networks:
+  bot-network:
+    driver: bridge
+    name: bot-nexum-network
+
+volumes:
+  bot-data:
+    driver: local
+    name: bot-nexum-data
+  bot-session:
+    driver: local
+    name: bot-nexum-session

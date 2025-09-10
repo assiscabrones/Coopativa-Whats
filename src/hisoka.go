@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"hisoka/src/handlers"
 	"hisoka/src/helpers"
+	"hisoka/src/libs"
 	"os"
 	"os/signal"
 	"regexp"
 	"syscall"
 
-	_ "hisoka/src/commands"
+	_ "hisoka/src/stages"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mdp/qrterminal"
@@ -38,10 +39,26 @@ func init() {
 func StartClient() {
 	ctx := context.Background()
 	dbLog := waLog.Stdout("Database", "ERROR", true)
-	container, err := sqlstore.New(ctx, "sqlite3", "file:session.db?_foreign_keys=on", dbLog)
+	
+	// Obter diretório de sessão das variáveis de ambiente
+	sessionDir := os.Getenv("SESSION_DIR")
+	if sessionDir == "" {
+		sessionDir = "."
+	}
+	sessionPath := sessionDir + "/session.db"
+	
+	container, err := sqlstore.New(ctx, "sqlite3", "file:"+sessionPath+"?_foreign_keys=on", dbLog)
 	if err != nil {
 		panic(err)
 	}
+	
+	// Inicializa o sistema de stages
+	err = libs.InitStages()
+	if err != nil {
+		panic(err)
+	}
+	log.Info("Stages system initialized")
+	
 	handler := handlers.NewHandler(container)
 	log.Info("Connecting Socket")
 	conn := handler.Client()
@@ -96,4 +113,5 @@ func StartClient() {
 	<-c
 
 	conn.Disconnect()
+	libs.CloseStagesDB()
 }
