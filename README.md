@@ -1,97 +1,34 @@
-## Langkah Instalasi
+# Gobot - Ativa Grupo SBF
 
-1. [`Git`](https://git-scm.com/downloads)
-2. [`Go`](https://go.dev/doc/install)
-3. Gcc for build
+Bem-vindo ao **Gobot**, o assistente automatizado de atendimento via WhatsApp do Ativa Grupo SBF! Este projeto foi desenvolvido para facilitar o atendimento de colaboradores, ex-colaboradores, parceiros e clientes, oferecendo um menu interativo e respostas automáticas para as principais demandas.
 
-> Gcc for windows on [`Here`](https://dev.to/gamegods3/how-to-install-gcc-in-windows-10-the-easier-way-422j)
+---
 
-> Gcc for linux (Ubuntu) on [`Here`](https://linuxize.com/post/how-to-install-gcc-on-ubuntu-20-04/)
+## 🚀 Visão Geral
 
-## Clone Repository 
-```sh
-git clone https://github.com/DikaArdnt/go-readsw
-```
+O Gobot é um bot escrito em Go, projetado para operar no WhatsApp, fornecendo um fluxo de atendimento baseado em estágios (stages). Ele permite navegação por menus, execução de handlers específicos para cada etapa e controle de permissões de acesso.
 
-## go to the folder 
-```sh
-cd go-readsw
-```
+---
 
-## Install Dependencies
-```sh
-go get all
-```
+## 📋 Funcionalidades
 
-## Build (Optional)
-```sh
-go build .
+- **Menu Principal Interativo:** Usuários podem navegar facilmente entre opções como Adesão, Aplicativo/Senha, Capital, Empréstimos, Parcerias, Consultoria, Ex-colaborador, Negociação de Dívidas, Informe de Rendimentos, Dúvidas e Encerrar Atendimento.
+- **Controle de Stages:** Cada etapa do atendimento é tratada como um "stage", com lógica e permissões próprias.
+- **Persistência de Dados:** Utiliza banco de dados para armazenar o progresso e dados do usuário.
+- **Permissões e Segurança:** Controle de acesso por número de telefone e permissões de owner.
+- **Respostas Personalizadas:** Mensagens customizadas para cada etapa e situação.
+- **Deploy em Kubernetes:** Pronto para ser executado em ambientes de produção com arquivos de deployment e configuração.
 
-# Run
-./hisoka.exe # for Windows
-hisoka.exe # for linux
-```
+---
 
-## Run
-```sh
-go run main.go
-```
+## 🛠️ Tecnologias Utilizadas
 
-## 🐳 Docker Deployment
+- **Go (Golang):** Linguagem principal do projeto.
+- **WhatsApp API:** Integração para envio e recebimento de mensagens.
+- **SQLite:** Persistência de dados dos usuários e estágios.
+- **Kubernetes:** Orquestração e deploy.
+- **GitHub Actions:** CI/CD, testes, lint e segurança.
 
-O Bot Nexum agora suporta deployment com Docker para facilitar a instalação e execução.
+---
 
-### Pré-requisitos para Docker
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
 
-### Instalação Rápida com Docker
-```bash
-# Clone o repositório
-git clone <seu-repositorio>
-cd gobot
-
-# Configure as variáveis de ambiente
-cp env.example .env
-# Edite o arquivo .env com suas configurações
-
-# Execute o script de build
-./build-docker.sh build
-./build-docker.sh run
-```
-
-### Comandos Docker Disponíveis
-```bash
-# Construir a imagem
-./build-docker.sh build
-
-# Iniciar o bot
-./build-docker.sh run
-
-# Ver logs
-./build-docker.sh logs
-
-# Parar o bot
-./build-docker.sh stop
-
-# Ver status
-./build-docker.sh status
-```
-
-### Docker Compose
-```bash
-# Iniciar com Docker Compose
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-
-# Parar
-docker-compose down
-```
-
-Para mais informações sobre Docker, consulte [DOCKER_README.md](DOCKER_README.md).
-
-## Thanks To
-- [tulir](https://github.com/tulir)
-- [vnia](https://github.com/fckvania)# Coopativa-Whats
