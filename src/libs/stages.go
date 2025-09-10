@@ -727,7 +727,6 @@ func ProcessStageMessage(conn *IClient, m *IMessage) bool {
 	// Executa o handler do stage
 	if stage.Handler != nil {
 		fmt.Printf("🔄 [STAGES] Executando handler do stage '%s'\n", stage.ID)
-		fmt.Printf("🔄 [STAGES] Handler function: %v\n", stage.Handler)
 		fmt.Printf("🔄 [STAGES] Chamando handler...\n")
 		result := stage.Handler(conn, m, userStage)
 		fmt.Printf("✅ [STAGES] Handler executado, resultado: %v\n", result)
