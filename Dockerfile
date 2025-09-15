@@ -17,13 +17,13 @@ RUN go mod download
 COPY . .
 
 # Compilar a aplicação
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main .
+RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -buildvcs=false -ldflags="-s -w" -o main .
 
 # Imagem final
-FROM alpine:latest
+FROM alpine:3.20
 
 # Instalar dependências de runtime
-RUN apk --no-cache add ca-certificates sqlite
+RUN apk --no-cache add ca-certificates sqlite-libs tzdata
 
 # Criar usuário não-root para segurança
 RUN adduser -D -s /bin/sh appuser
@@ -34,8 +34,8 @@ WORKDIR /app
 # Copiar o binário compilado
 COPY --from=builder /app/main .
 
-# Copiar arquivos de configuração
-COPY --from=builder /app/config.example .
+# (Opcional) Copiar arquivos de configuração de exemplo
+# COPY --from=builder /app/config.example .
 
 # Criar diretórios para dados persistentes
 RUN mkdir -p /app/data && chown -R appuser:appuser /app

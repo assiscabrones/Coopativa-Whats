@@ -20,8 +20,11 @@ help: ## Mostra esta ajuda
 
 build: ## Compila o projeto
 	@echo "$(GREEN)Compilando Bot Nexum...$(NC)"
-	@go build -o $(BINARY_NAME) .
+	@CGO_ENABLED=1 GOOS=linux go build -trimpath -buildvcs=false -ldflags "-s -w" -o $(BINARY_NAME) .
 	@echo "$(GREEN)Compilação concluída!$(NC)"
+
+size: ## Mostra o tamanho do binário
+	@ls -lh $(BINARY_NAME) || echo "$(YELLOW)Binário não encontrado$(NC)"
 
 run: ## Executa o bot
 	@echo "$(GREEN)Executando Bot Nexum...$(NC)"
