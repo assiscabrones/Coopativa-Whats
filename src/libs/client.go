@@ -3,9 +3,10 @@ package libs
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waCommon"
@@ -202,12 +203,18 @@ func (conn *IClient) SendSticker(jid types.JID, data []byte, opts *waE2E.Context
 }
 
 func (conn *IClient) GetBytes(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Get(url)
 	if err != nil {
 		return []byte{}, err
 	}
+	defer resp.Body.Close()
 
-	bytes, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return []byte{}, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
+	bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return []byte{}, err
 	}
