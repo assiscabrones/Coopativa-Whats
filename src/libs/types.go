@@ -23,11 +23,12 @@ type Stage struct {
 }
 
 type UserStage struct {
-	UserID      string
+	UserID       string
 	CurrentStage string
-	Data        map[string]interface{} // Dados específicos do usuário no stage atual
-	CreatedAt   int64
-	UpdatedAt   int64
+	Data         map[string]interface{} // Dados específicos do usuário no stage atual
+	CreatedAt    int64
+	UpdatedAt    int64
+	LastActivity int64 // Timestamp da última atividade do usuário
 }
 
 type IMessage struct {

@@ -17,27 +17,27 @@ var db *sql.DB
 // Inicializa o sistema de stages
 func InitStages() error {
 	stages = make(map[string]*Stage)
-	
+
 	// Obter diretório de dados das variáveis de ambiente
 	dataDir := os.Getenv("DATA_DIR")
 	if dataDir == "" {
 		dataDir = "."
 	}
-	
+
 	// Criar diretório se não existir
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return err
 	}
-	
+
 	dbPath := dataDir + "/stages.db"
-	
+
 	// Conecta ao banco de dados
 	var err error
 	db, err = sql.Open("sqlite3", "file:"+dbPath+"?_foreign_keys=on")
 	if err != nil {
 		return err
 	}
-	
+
 	// Cria a tabela de usuários se não existir
 	createTableSQL := `
 	CREATE TABLE IF NOT EXISTS user_stages (
@@ -45,17 +45,22 @@ func InitStages() error {
 		current_stage TEXT NOT NULL,
 		data TEXT,
 		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL
+		updated_at INTEGER NOT NULL,
+		last_activity INTEGER NOT NULL
 	);`
-	
+
 	_, err = db.Exec(createTableSQL)
 	if err != nil {
 		return err
 	}
-	
+
+	// Adiciona a coluna last_activity se não existir (migração)
+	alterTableSQL := `ALTER TABLE user_stages ADD COLUMN last_activity INTEGER DEFAULT 0;`
+	db.Exec(alterTableSQL) // Ignora erro se a coluna já existir
+
 	// Registra stages básicos se não foram registrados automaticamente
 	registerBasicStages()
-	
+
 	return nil
 }
 
@@ -67,16 +72,16 @@ func registerBasicStages() {
 		Name:        "Menu Principal",
 		Description: "Menu principal de atendimento",
 		Handler:     defaultHandler,
-		NextStages:  []string{
-			"adesao", "aplicativo", "capital", "emprestimos", 
-			"parcerias", "consultoria", "excolaborador", 
+		NextStages: []string{
+			"adesao", "aplicativo", "capital", "emprestimos",
+			"parcerias", "consultoria", "excolaborador",
 			"negociacao", "informe", "duvidas",
 		},
-		IsOwner:     false,
-		IsGroup:     false,
-		IsPrivate:   false,
+		IsOwner:   false,
+		IsGroup:   false,
+		IsPrivate: false,
 	})
-	
+
 	// Registra o stage de adesão
 	RegisterStage(&Stage{
 		ID:          "adesao",
@@ -88,7 +93,7 @@ func registerBasicStages() {
 		IsGroup:     false,
 		IsPrivate:   false,
 	})
-	
+
 	// Registra o stage de aplicativo/senha
 	RegisterStage(&Stage{
 		ID:          "aplicativo",
@@ -108,10 +113,10 @@ func defaultHandler(conn *IClient, m *IMessage, userStage *UserStage) bool {
 	fmt.Println("🚀 [DEFAULT] TESTE - Handler INICIADO!")
 	fmt.Printf("🚀 [DEFAULT] Handler INICIADO para usuário %s\n", m.Sender.ToNonAD().User)
 	fmt.Printf("🚀 [DEFAULT] Parâmetros: conn=%v, m=%v, userStage=%v\n", conn != nil, m != nil, userStage != nil)
-	
+
 	text := strings.ToLower(strings.TrimSpace(m.Text))
 	fmt.Printf("🔍 [DEFAULT] Handler recebeu: '%s' do usuário %s\n", text, m.Sender.ToNonAD().User)
-	
+
 	switch text {
 	case "1", "adesão", "adesao":
 		fmt.Printf("🔄 [DEFAULT] Usuário quer ir para adesão\n")
@@ -132,7 +137,7 @@ func defaultHandler(conn *IClient, m *IMessage, userStage *UserStage) bool {
 			fmt.Printf("❌ [DEFAULT] Stage adesao não encontrado ou sem handler\n")
 		}
 		return true
-		
+
 	case "2", "aplicativo", "senha", "acesso":
 		// Navega para stage de aplicativo/senha e executa o handler imediatamente
 		err := ChangeUserStage(m.Sender.ToNonAD().User, "aplicativo")
@@ -260,25 +265,22 @@ Escolha a opção desejada para atendimento:
 • Use palavras-chave como *sair* ou *encerrar*
 
 Escolha uma opção para continuar! ⬇️`, m.Info.PushName)
-		
+
 		m.Reply(message)
 		return true
 	}
-	
-	fmt.Printf("⚠️ [DEFAULT] Nenhum caso foi executado para: '%s'\n", text)
-	return false
 }
 
 // Handler do stage de adesão
 func adesaoHandler(conn *IClient, m *IMessage, userStage *UserStage) bool {
 	fmt.Printf("🚀 [ADESAO] Handler INICIADO para usuário %s\n", m.Sender.ToNonAD().User)
 	fmt.Printf("🚀 [ADESAO] Parâmetros: conn=%v, m=%v, userStage=%v\n", conn != nil, m != nil, userStage != nil)
-	
+
 	text := strings.ToLower(strings.TrimSpace(m.Text))
-	
+
 	fmt.Printf("🔍 [ADESAO] Handler recebeu: '%s' do usuário %s\n", text, m.Sender.ToNonAD().User)
 	fmt.Printf("🔍 [ADESAO] Texto processado: '%s'\n", text)
-	
+
 	switch text {
 	case "0", "voltar", "menu", "início", "inicio":
 		fmt.Printf("🔄 [ADESAO] Usuário quer voltar ao menu principal\n")
@@ -299,7 +301,7 @@ func adesaoHandler(conn *IClient, m *IMessage, userStage *UserStage) bool {
 			fmt.Printf("❌ [ADESAO] Stage default não encontrado ou sem handler\n")
 		}
 		return true
-		
+
 	case "link", "acessar", "formulário", "formulario":
 		// Mostra o link de acesso
 		message := `🔗 *Link para Adesão*
@@ -312,10 +314,10 @@ https://wscredcoopsbf.facilinformatica.com.br/facweb/#formulario-de-pessoa-fisic
 💡 *Dica:* Você pode copiar e colar o link no seu navegador.
 
 Digite *0* para voltar ao menu principal.`
-		
+
 		m.Reply(message)
 		return true
-		
+
 	default:
 		fmt.Printf("🔄 [ADESAO] Enviando mensagem padrão de adesão\n")
 		// Mostra as instruções de adesão
@@ -344,25 +346,22 @@ Agora é só aguardar que o nosso time irá enviar um e-mail de boas-vindas e co
 • Digite *0* para voltar ao menu principal
 
 Precisa de mais alguma informação sobre o processo de adesão?`
-		
+
 		m.Reply(message)
 		return true
 	}
-	
-	fmt.Printf("⚠️ [ADESAO] Nenhum caso foi executado para: '%s'\n", text)
-	return false
 }
 
 // Handler do stage de aplicativo/senha
 func aplicativoHandler(conn *IClient, m *IMessage, userStage *UserStage) bool {
 	fmt.Printf("🚀 [APLICATIVO] Handler INICIADO para usuário %s\n", m.Sender.ToNonAD().User)
 	fmt.Printf("🚀 [APLICATIVO] Parâmetros: conn=%v, m=%v, userStage=%v\n", conn != nil, m != nil, userStage != nil)
-	
+
 	text := strings.ToLower(strings.TrimSpace(m.Text))
-	
+
 	fmt.Printf("🔍 [APLICATIVO] Handler recebeu: '%s' do usuário %s\n", text, m.Sender.ToNonAD().User)
 	fmt.Printf("🔍 [APLICATIVO] Texto processado: '%s'\n", text)
-	
+
 	switch text {
 	case "0", "voltar", "menu", "início", "inicio":
 		fmt.Printf("🔄 [APLICATIVO] Usuário quer voltar ao menu principal\n")
@@ -383,7 +382,7 @@ func aplicativoHandler(conn *IClient, m *IMessage, userStage *UserStage) bool {
 			fmt.Printf("❌ [APLICATIVO] Stage default não encontrado ou sem handler\n")
 		}
 		return true
-		
+
 	case "1", "baixar", "download", "aplicativo":
 		fmt.Printf("🔄 [APLICATIVO] Usuário quer saber como baixar o aplicativo\n")
 		message := `📱 *Como baixar o aplicativo*
@@ -399,10 +398,10 @@ Você pode encontrar o nosso aplicativo pesquisando por "Cooper Ativa" em iOS ou
 📋 *Navegação:*
 • Digite *0* para voltar ao menu principal
 • Digite *5* para encerrar atendimento`
-		
+
 		m.Reply(message)
 		return true
-		
+
 	case "2", "esqueci", "senha", "recuperar":
 		fmt.Printf("🔄 [APLICATIVO] Usuário quer recuperar senha\n")
 		message := `🔑 *Esqueci minha senha de acesso ao aplicativo*
@@ -431,10 +430,10 @@ https://wscredcoopsbf.facilinformatica.com.br/facweb/
 📋 *Navegação:*
 • Digite *0* para voltar ao menu principal
 • Digite *5* para encerrar atendimento`
-		
+
 		m.Reply(message)
 		return true
-		
+
 	case "3", "bloqueada", "bloqueado":
 		fmt.Printf("🔄 [APLICATIVO] Usuário tem senha bloqueada\n")
 		message := `🔒 *Senha bloqueada*
@@ -448,10 +447,10 @@ Você tentou realizar o acesso via iBanking ou pelo aplicativo "Cooper Ativa" e 
 📋 *Navegação:*
 • Digite *0* para voltar ao menu principal
 • Digite *5* para encerrar atendimento`
-		
+
 		m.Reply(message)
 		return true
-		
+
 	case "4", "voltar menu", "menu inicial":
 		fmt.Printf("🔄 [APLICATIVO] Usuário quer voltar ao menu inicial\n")
 		err := ChangeUserStage(m.Sender.ToNonAD().User, "default")
@@ -471,7 +470,7 @@ Você tentou realizar o acesso via iBanking ou pelo aplicativo "Cooper Ativa" e 
 			fmt.Printf("❌ [APLICATIVO] Stage default não encontrado ou sem handler\n")
 		}
 		return true
-		
+
 	case "5", "encerrar", "sair", "fim":
 		fmt.Printf("🔄 [APLICATIVO] Usuário quer encerrar atendimento\n")
 		message := `👋 *Atendimento encerrado!*
@@ -479,10 +478,10 @@ Você tentou realizar o acesso via iBanking ou pelo aplicativo "Cooper Ativa" e 
 Obrigado por entrar em contato conosco.
 
 Se precisar de mais alguma coisa, é só me chamar novamente! 😊`
-		
+
 		m.Reply(message)
 		return true
-		
+
 	// Sub-opções para senha bloqueada
 	case "sim", "1 sim":
 		fmt.Printf("🔄 [APLICATIVO] Usuário confirmou que tem senha bloqueada\n")
@@ -495,10 +494,10 @@ Nossa equipe entrará em contato com você para solucionar o bloqueio o mais bre
 📋 *Navegação:*
 • Digite *0* para voltar ao menu principal
 • Digite *5* para encerrar atendimento`
-		
+
 		m.Reply(message)
 		return true
-		
+
 	case "não", "nao", "2 não", "2 nao":
 		fmt.Printf("🔄 [APLICATIVO] Usuário negou que tem senha bloqueada\n")
 		message := `📧 *Reporte o erro*
@@ -510,10 +509,10 @@ Nossa equipe entrará em contato com você para solucionar o bloqueio o mais bre
 📋 *Navegação:*
 • Digite *0* para voltar ao menu principal
 • Digite *5* para encerrar atendimento`
-		
+
 		m.Reply(message)
 		return true
-		
+
 	default:
 		fmt.Printf("🔄 [APLICATIVO] Enviando mensagem padrão do aplicativo\n")
 		// Mostra o menu do aplicativo/senha
@@ -532,13 +531,10 @@ Escolha a opção desejada:
 • Digite palavras-chave como *baixar*, *senha*, *bloqueada*
 
 Escolha uma opção para continuar! ⬇️`
-		
+
 		m.Reply(message)
 		return true
 	}
-	
-	fmt.Printf("⚠️ [APLICATIVO] Nenhum caso foi executado para: '%s'\n", text)
-	return false
 }
 
 // Registra um novo stage
@@ -561,27 +557,29 @@ func GetAllStages() map[string]*Stage {
 
 // Obtém o stage atual do usuário
 func GetUserStage(userID string) (*UserStage, error) {
-	query := "SELECT user_id, current_stage, data, created_at, updated_at FROM user_stages WHERE user_id = ?"
+	query := "SELECT user_id, current_stage, data, created_at, updated_at, last_activity FROM user_stages WHERE user_id = ?"
 	row := db.QueryRow(query, userID)
-	
+
 	var userStage UserStage
 	var dataJSON string
-	
-	err := row.Scan(&userStage.UserID, &userStage.CurrentStage, &dataJSON, &userStage.CreatedAt, &userStage.UpdatedAt)
+
+	err := row.Scan(&userStage.UserID, &userStage.CurrentStage, &dataJSON, &userStage.CreatedAt, &userStage.UpdatedAt, &userStage.LastActivity)
 	if err != nil {
 		if err == sql.ErrNoRows {
-		// Usuário não existe, retorna stage padrão
-		return &UserStage{
-			UserID:      userID,
-			CurrentStage: "default",
-			Data:        make(map[string]interface{}),
-			CreatedAt:   time.Now().Unix(),
-			UpdatedAt:   time.Now().Unix(),
-		}, nil
+			// Usuário não existe, retorna stage padrão
+			now := time.Now().Unix()
+			return &UserStage{
+				UserID:       userID,
+				CurrentStage: "default",
+				Data:         make(map[string]interface{}),
+				CreatedAt:    now,
+				UpdatedAt:    now,
+				LastActivity: now,
+			}, nil
 		}
 		return nil, err
 	}
-	
+
 	// Deserializa os dados JSON
 	if dataJSON != "" {
 		err = json.Unmarshal([]byte(dataJSON), &userStage.Data)
@@ -591,7 +589,7 @@ func GetUserStage(userID string) (*UserStage, error) {
 	} else {
 		userStage.Data = make(map[string]interface{})
 	}
-	
+
 	return &userStage, nil
 }
 
@@ -601,15 +599,20 @@ func SaveUserStage(userStage *UserStage) error {
 	if err != nil {
 		return err
 	}
-	
+
 	now := time.Now().Unix()
 	userStage.UpdatedAt = now
-	
+
+	// Se LastActivity não foi definido, usa o timestamp atual
+	if userStage.LastActivity == 0 {
+		userStage.LastActivity = now
+	}
+
 	query := `
-	INSERT OR REPLACE INTO user_stages (user_id, current_stage, data, created_at, updated_at)
-	VALUES (?, ?, ?, ?, ?)`
-	
-	_, err = db.Exec(query, userStage.UserID, userStage.CurrentStage, string(dataJSON), userStage.CreatedAt, userStage.UpdatedAt)
+	INSERT OR REPLACE INTO user_stages (user_id, current_stage, data, created_at, updated_at, last_activity)
+	VALUES (?, ?, ?, ?, ?, ?)`
+
+	_, err = db.Exec(query, userStage.UserID, userStage.CurrentStage, string(dataJSON), userStage.CreatedAt, userStage.UpdatedAt, userStage.LastActivity)
 	return err
 }
 
@@ -624,32 +627,32 @@ func ChangeUserStageWithMessage(userID string, newStageID string, conn *IClient,
 	if err != nil {
 		return err
 	}
-	
+
 	// Verifica se o stage existe
 	stage := GetStage(newStageID)
 	if stage == nil {
 		return fmt.Errorf("stage '%s' não encontrado", newStageID)
 	}
-	
+
 	// Verifica se o usuário pode acessar este stage
 	if stage.IsOwner && !isOwner(userID) {
 		return fmt.Errorf("você não tem permissão para acessar este stage")
 	}
-	
+
 	userStage.CurrentStage = newStageID
 	userStage.Data = make(map[string]interface{}) // Limpa dados do stage anterior
-	
+
 	err = SaveUserStage(userStage)
 	if err != nil {
 		return err
 	}
-	
+
 	// Se foi fornecido conn e m, executa o handler do novo stage
 	if conn != nil && m != nil && stage.Handler != nil {
 		// Executa o handler do novo stage diretamente
 		stage.Handler(conn, m, userStage)
 	}
-	
+
 	return nil
 }
 
@@ -659,14 +662,14 @@ func CanNavigateToStage(userID string, fromStageID string, toStageID string) boo
 	if fromStage == nil {
 		return false
 	}
-	
+
 	// Verifica se o stage de destino está na lista de próximos stages
 	for _, nextStage := range fromStage.NextStages {
 		if nextStage == toStageID {
 			return true
 		}
 	}
-	
+
 	// Permite navegação para o próprio stage
 	return fromStageID == toStageID
 }
@@ -674,9 +677,9 @@ func CanNavigateToStage(userID string, fromStageID string, toStageID string) boo
 // Processa uma mensagem no contexto do stage atual do usuário
 func ProcessStageMessage(conn *IClient, m *IMessage) bool {
 	userID := m.Sender.ToNonAD().User
-	
+
 	fmt.Printf("🔍 [STAGES] Processando mensagem '%s' do usuário %s\n", m.Text, userID)
-	
+
 	// Verifica se o usuário está autorizado (apenas 5514991983652)
 	authorizedNumber := "5514991983652"
 	if userID != authorizedNumber {
@@ -684,7 +687,7 @@ func ProcessStageMessage(conn *IClient, m *IMessage) bool {
 		m.Reply("❌ *Acesso não autorizado*\n\nEste atendimento é restrito a usuários específicos.\n\nSe você acredita que deveria ter acesso, entre em contato com a administração.")
 		return false
 	}
-	
+
 	// Obtém o stage atual do usuário
 	userStage, err := GetUserStage(userID)
 	if err != nil {
@@ -692,9 +695,13 @@ func ProcessStageMessage(conn *IClient, m *IMessage) bool {
 		m.Reply("Erro ao obter informações do usuário: " + err.Error())
 		return false
 	}
-	
+
+	// Atualiza a última atividade do usuário
+	userStage.LastActivity = time.Now().Unix()
+	SaveUserStage(userStage)
+
 	fmt.Printf("🔍 [STAGES] Usuário está no stage: %s\n", userStage.CurrentStage)
-	
+
 	// Obtém o stage atual
 	stage := GetStage(userStage.CurrentStage)
 	if stage == nil {
@@ -707,27 +714,26 @@ func ProcessStageMessage(conn *IClient, m *IMessage) bool {
 			return false
 		}
 	}
-	 
+
 	// Verifica permissões do stage
 	if stage.IsOwner && !m.IsOwner {
 		m.Reply("Você não tem permissão para acessar este stage.")
 		return false
 	}
-	
+
 	if stage.IsGroup && !m.Info.IsGroup {
 		m.Reply("Este stage só funciona em grupos.")
 		return false
 	}
-	
+
 	if stage.IsPrivate && m.Info.IsGroup {
 		m.Reply("Este stage só funciona em conversas privadas.")
 		return false
 	}
-	
+
 	// Executa o handler do stage
 	if stage.Handler != nil {
 		fmt.Printf("🔄 [STAGES] Executando handler do stage '%s'\n", stage.ID)
-		fmt.Printf("🔄 [STAGES] Handler function: %v\n", stage.Handler)
 		fmt.Printf("🔄 [STAGES] Chamando handler...\n")
 		result := stage.Handler(conn, m, userStage)
 		fmt.Printf("✅ [STAGES] Handler executado, resultado: %v\n", result)
@@ -735,7 +741,7 @@ func ProcessStageMessage(conn *IClient, m *IMessage) bool {
 	} else {
 		fmt.Printf("❌ [STAGES] Stage sem handler\n")
 	}
-	
+
 	return false
 }
 
@@ -745,7 +751,7 @@ func isOwner(userID string) bool {
 	if owners == "" {
 		return false
 	}
-	
+
 	// Verifica se o userID está na lista de owners (separados por vírgula)
 	ownerList := strings.Split(owners, ",")
 	for _, owner := range ownerList {
@@ -756,6 +762,76 @@ func isOwner(userID string) bool {
 	return false
 }
 
+// ResetUserStage reseta o stage de um usuário para o padrão
+func ResetUserStage(userID string) error {
+	now := time.Now().Unix()
+	userStage := &UserStage{
+		UserID:       userID,
+		CurrentStage: "default",
+		Data:         make(map[string]interface{}),
+		CreatedAt:    now,
+		UpdatedAt:    now,
+		LastActivity: now,
+	}
+
+	return SaveUserStage(userStage)
+}
+
+// CheckInactiveUsers verifica e reseta stages de usuários inativos há mais de 2 horas
+func CheckInactiveUsers() error {
+	// 2 horas em segundos
+	timeoutSeconds := int64(2 * 60 * 60)
+	cutoffTime := time.Now().Unix() - timeoutSeconds
+
+	// Busca usuários inativos
+	query := "SELECT user_id, current_stage FROM user_stages WHERE last_activity < ? AND current_stage != 'default'"
+	rows, err := db.Query(query, cutoffTime)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var resetCount int
+	for rows.Next() {
+		var userID, currentStage string
+		if err := rows.Scan(&userID, &currentStage); err != nil {
+			fmt.Printf("❌ [TIMEOUT] Erro ao ler usuário inativo: %s\n", err.Error())
+			continue
+		}
+
+		// Reseta o stage do usuário
+		if err := ResetUserStage(userID); err != nil {
+			fmt.Printf("❌ [TIMEOUT] Erro ao resetar stage do usuário %s: %s\n", userID, err.Error())
+			continue
+		}
+
+		fmt.Printf("⏰ [TIMEOUT] Stage resetado para usuário %s (estava em '%s')\n", userID, currentStage)
+		resetCount++
+	}
+
+	if resetCount > 0 {
+		fmt.Printf("⏰ [TIMEOUT] Total de %d usuários tiveram seus stages resetados por inatividade\n", resetCount)
+	}
+
+	return nil
+}
+
+// StartTimeoutChecker inicia a goroutine que verifica usuários inativos periodicamente
+func StartTimeoutChecker() {
+	go func() {
+		ticker := time.NewTicker(30 * time.Minute) // Verifica a cada 30 minutos
+		defer ticker.Stop()
+
+		fmt.Println("⏰ [TIMEOUT] Sistema de timeout iniciado - verificando a cada 30 minutos")
+
+		for range ticker.C {
+			if err := CheckInactiveUsers(); err != nil {
+				fmt.Printf("❌ [TIMEOUT] Erro ao verificar usuários inativos: %s\n", err.Error())
+			}
+		}
+	}()
+}
+
 // Fecha a conexão com o banco de dados
 func CloseStagesDB() error {
 	if db != nil {
@@ -763,4 +839,3 @@ func CloseStagesDB() error {
 	}
 	return nil
 }
-

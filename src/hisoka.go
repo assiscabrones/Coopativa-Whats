@@ -39,26 +39,30 @@ func init() {
 func StartClient() {
 	ctx := context.Background()
 	dbLog := waLog.Stdout("Database", "ERROR", true)
-	
+
 	// Obter diretório de sessão das variáveis de ambiente
 	sessionDir := os.Getenv("SESSION_DIR")
 	if sessionDir == "" {
 		sessionDir = "."
 	}
 	sessionPath := sessionDir + "/session.db"
-	
+
 	container, err := sqlstore.New(ctx, "sqlite3", "file:"+sessionPath+"?_foreign_keys=on", dbLog)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	// Inicializa o sistema de stages
 	err = libs.InitStages()
 	if err != nil {
 		panic(err)
 	}
 	log.Info("Stages system initialized")
-	
+
+	// Inicia o sistema de timeout automático
+	libs.StartTimeoutChecker()
+	log.Info("Timeout checker system started")
+
 	handler := handlers.NewHandler(container)
 	log.Info("Connecting Socket")
 	conn := handler.Client()
