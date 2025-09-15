@@ -3,7 +3,7 @@ package libs
 import (
 	"context"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -207,7 +207,7 @@ func (conn *IClient) GetBytes(url string) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	bytes, err := io.ReadAll(resp.Body)
+	bytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return []byte{}, err
 	}

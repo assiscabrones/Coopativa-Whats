@@ -100,6 +100,18 @@ func registerBasicStages() {
 		IsGroup:     false,
 		IsPrivate:   false,
 	})
+
+	// Registra o stage de capital (investimento)
+	RegisterStage(&Stage{
+		ID:          "capital",
+		Name:        "Capital (Investimento)",
+		Description: "Informações e operações relacionadas ao capital (investimento)",
+		Handler:     capitalHandler,
+		NextStages:  []string{"default"},
+		IsOwner:     false,
+		IsGroup:     false,
+		IsPrivate:   false,
+	})
 }
 
 // Handler do stage default
@@ -150,11 +162,18 @@ func defaultHandler(conn *IClient, m *IMessage, userStage *UserStage) bool {
 		return true
 
 	case "3", "capital", "investimento":
-		// Navega para stage de capital
+		// Navega para stage de capital e executa o handler imediatamente
 		err := ChangeUserStage(m.Sender.ToNonAD().User, "capital")
 		if err != nil {
 			m.Reply("❌ Erro ao acessar: " + err.Error())
 			return false
+		}
+		capitalStage := GetStage("capital")
+		if capitalStage != nil && capitalStage.Handler != nil {
+			fmt.Printf("🔄 [DEFAULT] Executando handler do stage capital\n")
+			userStage, _ := GetUserStage(m.Sender.ToNonAD().User)
+			capitalStage.Handler(conn, m, userStage)
+			fmt.Printf("✅ [DEFAULT] Handler do capital executado\n")
 		}
 		return true
 
@@ -541,6 +560,72 @@ Escolha uma opção para continuar! ⬇️`
 	return false
 }
 
+// Handler do stage de capital (investimento)
+func capitalHandler(conn *IClient, m *IMessage, userStage *UserStage) bool {
+	fmt.Printf("🚀 [CAPITAL] Handler INICIADO para usuário %s\n", m.Sender.ToNonAD().User)
+	fmt.Printf("🚀 [CAPITAL] Parâmetros: conn=%v, m=%v, userStage=%v\n", conn != nil, m != nil, userStage != nil)
+	
+	text := strings.ToLower(strings.TrimSpace(m.Text))
+	
+	fmt.Printf("🔍 [CAPITAL] Handler recebeu: '%s' do usuário %s\n", text, m.Sender.ToNonAD().User)
+	fmt.Printf("🔍 [CAPITAL] Texto processado: '%s'\n", text)
+	
+	switch text {
+	case "0", "voltar", "menu", "início", "inicio":
+		fmt.Printf("🔄 [CAPITAL] Usuário quer voltar ao menu principal\n")
+		err := ChangeUserStage(m.Sender.ToNonAD().User, "default")
+		if err != nil {
+			fmt.Printf("❌ [CAPITAL] Erro ao mudar stage: %s\n", err.Error())
+			m.Reply("❌ Erro ao voltar: " + err.Error())
+			return false
+		}
+		fmt.Printf("✅ [CAPITAL] Stage mudado para 'default'\n")
+		defaultStage := GetStage("default")
+		if defaultStage != nil && defaultStage.Handler != nil {
+			fmt.Printf("🔄 [CAPITAL] Executando handler do stage default\n")
+			userStage, _ := GetUserStage(m.Sender.ToNonAD().User)
+			defaultStage.Handler(conn, m, userStage)
+			fmt.Printf("✅ [CAPITAL] Handler do default executado\n")
+		} else {
+			fmt.Printf("❌ [CAPITAL] Stage default não encontrado ou sem handler\n")
+		}
+		return true
+		
+	case "1", "saldo", "consultar saldo", "saldo de capital":
+		message := `📊 *Como consultar meu saldo de capital?*
+
+Atraveśs do aplicativo Cooper Ativa, você consegue consultar seu saldo de capital, simular empréstimos e até solicitar empréstimos 🔎💳
+
+Você também pode fazer a consulta através do iBanking, pelo link:
+https://wscredcoopsbf.facilinformatica.com.br/facweb/
+
+📋 *Navegação:*
+• Digite *0* para voltar ao menu inicial
+• Digite *2* para encerrar atendimento`
+		m.Reply(message)
+		return true
+
+	case "2", "encerrar", "sair", "fim":
+		m.Reply("👋 *Atendimento encerrado!*\n\nObrigado por entrar em contato conosco.\n\nSe precisar de mais alguma coisa, é só me chamar novamente! 😊")
+		return true
+
+	default:
+		fmt.Printf("🔄 [CAPITAL] Enviando mensagem padrão de capital\n")
+		message := `💼 *CAPITAL (INVESTIMENTO)*
+
+Escolha a opção desejada:
+
+1️⃣ *Como consultar meu saldo de capital?*
+0️⃣ *Voltar ao menu inicial*
+2️⃣ *Encerrar atendimento*`
+		m.Reply(message)
+		return true
+	}
+
+	fmt.Printf("⚠️ [CAPITAL] Nenhum caso foi executado para: '%s'\n", text)
+	return false
+}
+
 // Registra um novo stage
 func RegisterStage(stage *Stage) {
 	if stages == nil {
@@ -727,6 +812,7 @@ func ProcessStageMessage(conn *IClient, m *IMessage) bool {
 	// Executa o handler do stage
 	if stage.Handler != nil {
 		fmt.Printf("🔄 [STAGES] Executando handler do stage '%s'\n", stage.ID)
+		fmt.Printf("🔄 [STAGES] Handler function: %v\n", stage.Handler)
 		fmt.Printf("🔄 [STAGES] Chamando handler...\n")
 		result := stage.Handler(conn, m, userStage)
 		fmt.Printf("✅ [STAGES] Handler executado, resultado: %v\n", result)

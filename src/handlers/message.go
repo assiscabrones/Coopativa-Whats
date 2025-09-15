@@ -79,7 +79,7 @@ func (h *IHandler) RegisterHandler(conn *whatsmeow.Client) func(evt interface{})
 			if len(conn.Store.PushName) == 0 {
 				return
 			}
-			_ = conn.SendPresence(types.PresenceAvailable)
+			conn.SendPresence(types.PresenceAvailable)
 		}
 	}
 }

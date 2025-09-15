@@ -113,5 +113,5 @@ func StartClient() {
 	<-c
 
 	conn.Disconnect()
-	_ = libs.CloseStagesDB()
+	libs.CloseStagesDB()
 }
